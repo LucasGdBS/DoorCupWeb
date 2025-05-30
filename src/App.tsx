@@ -7,6 +7,7 @@ function App() {
   const [temperature, setTemperature] = useState<number | null>(null);
   const [sliderValue, setSliderValue] = useState<number[]>([25]);
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     const tempRef = ref(db, "/temperature");
@@ -29,18 +30,18 @@ function App() {
     let timeout: NodeJS.Timeout;
 
     const isMatching =
-      temperature !== null && Math.abs(temperature - sliderValue[0]) < 1;
+      temperature !== null &&
+      Math.trunc(Math.abs(temperature)) ===
+        Math.trunc(Math.abs(sliderValue[0]));
 
-    if (isMatching) {
+    if (isMatching && !isBlocked) {
       timeout = setTimeout(() => {
         setShowModal(true);
-      }, 1000); // 1 segundo
+      }, 1000);
     }
 
-    return () => {
-      clearTimeout(timeout); // limpa o timeout se o efeito rodar de novo ou desmontar
-    };
-  }, [temperature, sliderValue]);
+    return () => clearTimeout(timeout);
+  }, [temperature, sliderValue, isBlocked]);
 
   useEffect(() => {
     if (showModal) {
@@ -51,9 +52,19 @@ function App() {
     }
   }, [showModal]);
 
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setIsBlocked(true);
+
+    // Bloqueia por 10 segundos
+    setTimeout(() => {
+      setIsBlocked(false);
+    }, 10_000);
+  };
+
   return (
     <>
-      {showModal && <Modal open={showModal} onOpenChange={setShowModal} />}
+      {showModal && <Modal onClose={handleCloseModal} />}
       <div className="max-h-screen min-h-screen bg-[#091213] p-28 px-8 text-white font-semibold">
         <header className="w-full flex justify-center mb-12">
           <img
